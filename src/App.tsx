@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, TrendingUp, TrendingDown, Clock, MapPin, AlertCircle, Loader2, Info, ArrowRight, DollarSign, ShoppingCart, Zap, RefreshCw, Filter } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Clock, MapPin, AlertCircle, Loader2, Info, ArrowRight, DollarSign, ShoppingCart, Zap, RefreshCw, Filter, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { POPULAR_ITEMS } from './constants';
 
@@ -109,7 +109,21 @@ const TRANSLATIONS = {
     footerDesc: 'Os dados são fornecidos pela comunidade e podem não refletir os preços exatos no jogo em tempo real. Use com cautela para decisões de mercado de alto risco.',
     databaseDesc: 'Banco de dados: {count} itens populares pré-carregados. Pesquisa manual suporta todos os itens do jogo via ID técnico.',
     silver: 'Prata',
-    noData: 'Sem dados'
+    noData: 'Sem dados',
+    favTab: 'Favoritos',
+    investment: 'Investimento Total',
+    return: 'Retorno Estimado (BM)',
+    quantity: 'Qtd',
+    totalProfit: 'Lucro Total',
+    riskLevel: 'Nível de Risco',
+    noFavs: 'Nenhum item favoritado',
+    addFavs: 'Adicione itens aos favoritos clicando na estrela nos resultados de busca ou oportunidades.',
+    buyPriceFav: 'Preço de Compra',
+    sellPriceBM: 'Venda (Black Market)',
+    totalInvestment: 'Total Investido',
+    totalReturn: 'Total Retorno',
+    silverInvested: 'Prata Investida',
+    silverReturn: 'Prata de Retorno'
   },
   en: {
     subtitle: 'Arbitrage & Price Tracker',
@@ -166,7 +180,21 @@ const TRANSLATIONS = {
     footerDesc: 'Data is provided by the community and may not reflect exact in-game prices in real-time. Use with caution for high-risk market decisions.',
     databaseDesc: 'Database: {count} popular items pre-loaded. Manual search supports all in-game items via technical ID.',
     silver: 'Silver',
-    noData: 'No data'
+    noData: 'No data',
+    favTab: 'Favorites',
+    investment: 'Total Investment',
+    return: 'Estimated Return (BM)',
+    quantity: 'Qty',
+    totalProfit: 'Total Profit',
+    riskLevel: 'Risk Level',
+    noFavs: 'No favorited items',
+    addFavs: 'Add items to favorites by clicking the star in search results or opportunities.',
+    buyPriceFav: 'Buy Price',
+    sellPriceBM: 'Sell (Black Market)',
+    totalInvestment: 'Total Invested',
+    totalReturn: 'Total Return',
+    silverInvested: 'Silver Invested',
+    silverReturn: 'Silver Return'
   }
 };
 
@@ -174,7 +202,7 @@ export default function App() {
   const [language, setLanguage] = useState<'pt' | 'en'>('pt');
   const t = TRANSLATIONS[language];
   
-  const [activeTab, setActiveTab] = useState<'search' | 'opportunities'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'opportunities' | 'favorites'>('search');
   const [itemId, setItemId] = useState('');
   const [loading, setLoading] = useState(false);
   const [prices, setPrices] = useState<PriceData[]>([]);
@@ -191,6 +219,68 @@ export default function App() {
   const [sellCities, setSellCities] = useState<string[]>(['Caerleon', 'Black Market']);
   const [minProfit, setMinProfit] = useState(0);
   const [tierFilter, setTierFilter] = useState<'all' | '6-' | '6+'>('all');
+
+  // Favorites state
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    const saved = localStorage.getItem('albion_favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [favoriteQuantities, setFavoriteQuantities] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('albion_fav_quantities');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [favoritePrices, setFavoritePrices] = useState<Record<string, PriceData[]>>({});
+
+  useEffect(() => {
+    localStorage.setItem('albion_favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem('albion_fav_quantities', JSON.stringify(favoriteQuantities));
+  }, [favoriteQuantities]);
+
+  const toggleFavorite = (id: string) => {
+    setFavorites(prev => 
+      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
+    );
+  };
+
+  const updateQuantity = (id: string, qty: number) => {
+    setFavoriteQuantities(prev => ({
+      ...prev,
+      [id]: Math.max(0, qty)
+    }));
+  };
+
+  const fetchFavoritePrices = async () => {
+    if (favorites.length === 0) return;
+    setLoading(true);
+    try {
+      const itemIds = favorites.join(',');
+      const apiLocations = CITIES.map(c => c.replace(/\s/g, '')).join(',');
+      const url = `https://west.albion-online-data.com/api/v2/stats/prices/${itemIds}.json?locations=${apiLocations}&qualities=1`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data: PriceData[] = await res.json();
+        const grouped = data.reduce((acc, curr) => {
+          if (!acc[curr.item_id]) acc[curr.item_id] = [];
+          acc[curr.item_id].push(curr);
+          return acc;
+        }, {} as Record<string, PriceData[]>);
+        setFavoritePrices(grouped);
+      }
+    } catch (err) {
+      console.error('Error fetching favorite prices:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'favorites') {
+      fetchFavoritePrices();
+    }
+  }, [activeTab, favorites]);
 
   const getItemName = (id: string) => {
     const item = POPULAR_ITEMS.find(i => i.id === id);
@@ -260,6 +350,45 @@ export default function App() {
       'Elmo do Guardião': 'Guardian Helmet',
       'Armadura do Guardião': 'Guardian Armor',
       'Botas do Guardião': 'Guardian Boots',
+      'Espada Esculpidora': 'Carving Sword',
+      'Chamado da Carniça': 'Carrioncaller',
+      'Maça de Pedra': 'Bedrock Mace',
+      'Juramentadores': 'Oathkeepers',
+      'Martelo Grande': 'Great Hammer',
+      'Martelos da Forja': 'Forge Hammers',
+      'Pique': 'Pike',
+      'Caçador Espiritual': 'Spirithunter',
+      'Cajado Bruxesco': 'Witchwork Staff',
+      'Cajado Oculto': 'Occult Staff',
+      'Canção Eterna': 'Evensong',
+      'Fogo Selvagem': 'Wildfire Staff',
+      'Brimstone': 'Brimstone Staff',
+      'Chama Ardente': 'Blazing Staff',
+      'Geada': 'Hoarfrost Staff',
+      'Permafrost': 'Permafrost Prism',
+      'Cajado da Maldição Vital': 'Lifecurse Staff',
+      'Danação': 'Damnation Staff',
+      'Chamador das Sombras': 'Shadowcaller',
+      'Cajado Druídico': 'Druidic Staff',
+      'Cajado da Praga': 'Blight Staff',
+      'Hallowfall': 'Hallowfall',
+      'Arco Uivante': 'Wailing Bow',
+      'Lançadores de Parafusos': 'Boltcasters',
+      'Canino Demoníaco': 'Demonfang',
+      'Buscador do Graal': 'Grailseeker',
+      'Golpe do Corvo': 'Ravenstrike Cestus',
+      'Capuz Real de Couro': 'Royal Cowl',
+      'Jaqueta Real': 'Royal Jacket',
+      'Sapatos Reais de Couro': 'Royal Shoes',
+      'Elmo Real': 'Royal Helmet',
+      'Armadura Real': 'Royal Armor',
+      'Botas Reais': 'Royal Boots',
+      'Capa Avaloniana': 'Avalonian Cape',
+      'Capa Morgana': 'Morgana Cape',
+      'Capa Demoníaca': 'Demon Cape',
+      'Capa Morta-Viva': 'Undead Cape',
+      'Capa de Cristal': 'Crystal Cape',
+      'Saco de Conhecimento': 'Satchel of Insight',
       'Escudo': 'Shield',
       'Tocha': 'Torch',
       'Tomo de Feitiços': 'Tome of Spells'
@@ -586,6 +715,12 @@ export default function App() {
             >
               {t.oppTab}
             </button>
+            <button
+              onClick={() => setActiveTab('favorites')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'favorites' ? 'bg-emerald-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              {t.favTab}
+            </button>
           </div>
         </div>
 
@@ -651,7 +786,7 @@ export default function App() {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
-          {activeTab === 'search' ? (
+          {activeTab === 'search' && (
             <motion.div
               key="search-tab"
               initial={{ opacity: 0, x: -20 }}
@@ -821,6 +956,12 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-4">
                       <button
+                        onClick={() => toggleFavorite(searchedItem)}
+                        className={`p-2 rounded-lg border transition-all ${favorites.includes(searchedItem) ? 'bg-amber-500/20 border-amber-500/50 text-amber-500' : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-zinc-300'}`}
+                      >
+                        <Star className={`w-4 h-4 ${favorites.includes(searchedItem) ? 'fill-amber-500' : ''}`} />
+                      </button>
+                      <button
                         onClick={() => { setSearchedItem(''); setPrices([]); setItemId(''); setError(null); }}
                         className="text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-4"
                       >
@@ -899,7 +1040,9 @@ export default function App() {
                 </div>
               )}
             </motion.div>
-          ) : (
+          )}
+
+          {activeTab === 'opportunities' && (
             <motion.div
               key="opportunities-tab"
               initial={{ opacity: 0, x: 20 }}
@@ -1079,6 +1222,12 @@ export default function App() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleFavorite(opp.item_id)}
+                          className={`p-1.5 rounded-lg border transition-all ${favorites.includes(opp.item_id) ? 'bg-amber-500/20 border-amber-500/50 text-amber-500' : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-zinc-300'}`}
+                        >
+                          <Star className={`w-3 h-3 ${favorites.includes(opp.item_id) ? 'fill-amber-500' : ''}`} />
+                        </button>
                         {(() => {
                           const conf = getConfidence(opp.buy_updated, opp.sell_updated);
                           const label = conf.label === 'Seguro' ? t.safe : conf.label === 'Mediano' ? t.medium : t.risk;
@@ -1130,6 +1279,177 @@ export default function App() {
                     </button>
                   </motion.div>
                 ))}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'favorites' && (
+            <motion.div
+              key="favorites"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-8"
+            >
+              <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">{t.favTab}</h2>
+                    <p className="text-xs text-zinc-500 mt-1">{t.addFavs}</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={fetchFavoritePrices}
+                      disabled={loading}
+                      className="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 p-4 rounded-xl border border-white/5 transition-all flex items-center justify-center"
+                      title={t.refreshBtn}
+                    >
+                      <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                    <div className="bg-zinc-950 border border-white/5 p-4 rounded-xl">
+                      <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-1">{t.totalInvestment}</div>
+                      <div className="text-xl font-bold text-emerald-400 font-mono">
+                        {(() => {
+                          let total = 0;
+                          favorites.forEach(id => {
+                            const qty = favoriteQuantities[id] || 0;
+                            const itemPrices = favoritePrices[id] || [];
+                            const bestBuy = itemPrices.filter(p => p.sell_price_min > 0).reduce((prev, curr) => (!prev || curr.sell_price_min < prev.sell_price_min) ? curr : prev, null as PriceData | null);
+                            if (bestBuy) total += bestBuy.sell_price_min * qty;
+                          });
+                          return formatPrice(total);
+                        })()}
+                      </div>
+                    </div>
+                    <div className="bg-zinc-950 border border-white/5 p-4 rounded-xl">
+                      <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-1">{t.totalReturn}</div>
+                      <div className="text-xl font-bold text-blue-400 font-mono">
+                        {(() => {
+                          let total = 0;
+                          favorites.forEach(id => {
+                            const qty = favoriteQuantities[id] || 0;
+                            const itemPrices = favoritePrices[id] || [];
+                            const bmPrice = itemPrices.find(p => p.city === 'Black Market');
+                            if (bmPrice && bmPrice.buy_price_max > 0) total += bmPrice.buy_price_max * qty;
+                          });
+                          return formatPrice(total);
+                        })()}
+                      </div>
+                    </div>
+                    <div className="bg-zinc-950 border border-white/5 p-4 rounded-xl">
+                      <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-1">{t.totalProfit}</div>
+                      <div className="text-xl font-bold text-amber-400 font-mono">
+                        {(() => {
+                          let totalInvestment = 0;
+                          let totalReturn = 0;
+                          favorites.forEach(id => {
+                            const qty = favoriteQuantities[id] || 0;
+                            const itemPrices = favoritePrices[id] || [];
+                            const bestBuy = itemPrices.filter(p => p.sell_price_min > 0).reduce((prev, curr) => (!prev || curr.sell_price_min < prev.sell_price_min) ? curr : prev, null as PriceData | null);
+                            const bmPrice = itemPrices.find(p => p.city === 'Black Market');
+                            
+                            if (bestBuy) totalInvestment += bestBuy.sell_price_min * qty;
+                            if (bmPrice && bmPrice.buy_price_max > 0) totalReturn += bmPrice.buy_price_max * qty;
+                          });
+                          return formatPrice(totalReturn - totalInvestment);
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {favorites.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="w-20 h-20 bg-zinc-900/50 rounded-full flex items-center justify-center mb-6 border border-white/5">
+                      <Star className="w-10 h-10 text-zinc-700" />
+                    </div>
+                    <h2 className="text-2xl font-light text-zinc-400 mb-2">{t.noFavs}</h2>
+                    <p className="text-zinc-600 max-w-md">{t.addFavs}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {favorites.map(id => {
+                      const itemPrices = favoritePrices[id] || [];
+                      const bestBuy = itemPrices.filter(p => p.sell_price_min > 0).reduce((prev, curr) => (!prev || curr.sell_price_min < prev.sell_price_min) ? curr : prev, null as PriceData | null);
+                      const bmPrice = itemPrices.find(p => p.city === 'Black Market');
+                      const qty = favoriteQuantities[id] || 0;
+                      const investment = bestBuy ? bestBuy.sell_price_min * qty : 0;
+                      const returns = (bmPrice && bmPrice.buy_price_max > 0) ? bmPrice.buy_price_max * qty : 0;
+                      const profit = returns - investment;
+                      const conf = (bestBuy && bmPrice) ? getConfidence(bestBuy.sell_price_min_date, bmPrice.buy_price_max_date) : null;
+
+                      return (
+                        <div key={id} className="bg-zinc-950 border border-white/5 rounded-xl p-4 flex flex-col md:flex-row items-center gap-6">
+                          <div className="flex items-center gap-4 flex-1 w-full">
+                            <img 
+                              src={`https://render.albiononline.com/v1/item/${id}.png`} 
+                              alt={id}
+                              className="w-12 h-12 object-contain bg-zinc-900/50 rounded-lg border border-white/5"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-white truncate">{getItemName(id)}</h3>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">{id}</span>
+                                {conf && (
+                                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded border ${conf.bg} ${conf.text} ${conf.border}`}>
+                                    {conf.label}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-6 w-full md:w-auto">
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">{t.quantity}</label>
+                              <input 
+                                type="number" 
+                                value={qty} 
+                                onChange={(e) => updateQuantity(id, parseInt(e.target.value) || 0)}
+                                className="w-20 bg-zinc-900 border border-white/10 rounded px-2 py-1 text-sm font-mono text-white focus:border-emerald-500 outline-none"
+                              />
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">{t.buyPriceFav}</label>
+                              <div className="text-sm font-mono text-emerald-400">
+                                {bestBuy ? formatPrice(bestBuy.sell_price_min) : '---'}
+                              </div>
+                              <div className="text-[8px] text-zinc-600">{bestBuy?.city}</div>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">{t.sellPriceBM}</label>
+                              <div className="text-sm font-mono text-blue-400">
+                                {bmPrice && bmPrice.buy_price_max > 0 ? formatPrice(bmPrice.buy_price_max) : '---'}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[9px] uppercase font-bold text-zinc-600 tracking-wider">{t.totalProfit}</label>
+                              <div className={`text-sm font-mono font-bold ${profit > 0 ? 'text-amber-400' : profit < 0 ? 'text-red-400' : 'text-zinc-600'}`}>
+                                {formatPrice(profit)}
+                              </div>
+                              {investment > 0 && (
+                                <div className="text-[8px] text-zinc-500 font-mono">
+                                  ROI: {((profit / investment) * 100).toFixed(1)}%
+                                </div>
+                              )}
+                            </div>
+
+                            <button 
+                              onClick={() => toggleFavorite(id)}
+                              className="p-2 text-zinc-600 hover:text-red-400 transition-colors"
+                            >
+                              <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
