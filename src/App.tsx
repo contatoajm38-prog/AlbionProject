@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, TrendingUp, TrendingDown, Clock, MapPin, AlertCircle, Loader2, Info, ArrowRight, DollarSign, ShoppingCart, Zap, RefreshCw } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Clock, MapPin, AlertCircle, Loader2, Info, ArrowRight, DollarSign, ShoppingCart, Zap, RefreshCw, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { POPULAR_ITEMS } from './constants';
 
@@ -53,7 +53,127 @@ const CITIES = [
   'Brecilien'
 ];
 
+const TRANSLATIONS = {
+  pt: {
+    subtitle: 'Arbitrage & Price Tracker',
+    searchTab: 'Consulta',
+    oppTab: 'Oportunidades',
+    searchPlaceholder: 'Nome ou ID do item...',
+    searchBtn: 'Buscar',
+    refreshBtn: 'Atualizar preços',
+    apiOnline: 'Online',
+    apiOffline: 'Offline',
+    bestBuy: 'Melhor COMPRA',
+    bestSell: 'Melhor VENDA',
+    flipProfit: 'Lucro Flip',
+    transportProfit: 'Lucro Transporte',
+    dailyVolume: 'Volume Diário (3d)',
+    opportunity: 'Oportunidade!',
+    noProfit: 'Sem Lucro',
+    insufficientData: 'Dados insuficientes',
+    salesPerDay: 'Vendas/dia (Média 3 dias)',
+    noVolumeData: 'Sem dados de volume',
+    resultsFor: 'Resultados para',
+    clear: 'Limpar',
+    city: 'Cidade',
+    sellPrice: 'Venda (Sell Price)',
+    buyPrice: 'Compra (Buy Price)',
+    lastUpdate: 'Última Atualização',
+    noRecentData: 'Sem dados recentes',
+    readyToSearch: 'Pronto para consultar?',
+    searchDesc: 'Digite o ID técnico do item acima para ver os preços em tempo real e encontrar oportunidades de lucro.',
+    searchError: 'Erro na busca',
+    marketOpp: 'Oportunidades de Mercado',
+    oppDesc: 'Configure os filtros abaixo e escaneie os 250 itens mais populares.',
+    found: 'Encontradas',
+    scan: 'Escanear',
+    buyAt: 'Comprar em:',
+    sellAt: 'Vender em:',
+    filterTier: 'Filtrar por Tier:',
+    all: 'TODOS',
+    minProfit: 'Lucro Mínimo por Item:',
+    noOppProfit: 'Nenhuma oportunidade com esse lucro',
+    lowerFilter: 'Tente diminuir o filtro de lucro mínimo para ver mais resultados.',
+    noOppLoaded: 'Nenhuma oportunidade carregada',
+    clickScan: 'Clique no botão "Escanear Mercado" acima para buscar as melhores diferenças de preço entre cidades.',
+    scanning: 'Escaneando Mercado...',
+    scanWait: 'Isso pode levar alguns segundos enquanto processamos os dados da API.',
+    safe: 'Seguro',
+    medium: 'Mediano',
+    risk: 'Risco',
+    buyIn: 'Compre em',
+    sellIn: 'Venda em',
+    volume3d: 'Volume (3d)',
+    estProfit: 'Lucro Estimado',
+    viewDetails: 'Ver Detalhes Completos',
+    footerDesc: 'Os dados são fornecidos pela comunidade e podem não refletir os preços exatos no jogo em tempo real. Use com cautela para decisões de mercado de alto risco.',
+    databaseDesc: 'Banco de dados: {count} itens populares pré-carregados. Pesquisa manual suporta todos os itens do jogo via ID técnico.',
+    silver: 'Prata',
+    noData: 'Sem dados'
+  },
+  en: {
+    subtitle: 'Arbitrage & Price Tracker',
+    searchTab: 'Search',
+    oppTab: 'Opportunities',
+    searchPlaceholder: 'Item name or ID...',
+    searchBtn: 'Search',
+    refreshBtn: 'Refresh prices',
+    apiOnline: 'Online',
+    apiOffline: 'Offline',
+    bestBuy: 'Best BUY',
+    bestSell: 'Best SELL',
+    flipProfit: 'Flip Profit',
+    transportProfit: 'Transport Profit',
+    dailyVolume: 'Daily Volume (3d)',
+    opportunity: 'Opportunity!',
+    noProfit: 'No Profit',
+    insufficientData: 'Insufficient data',
+    salesPerDay: 'Sales/day (3-day average)',
+    noVolumeData: 'No volume data',
+    resultsFor: 'Results for',
+    clear: 'Clear',
+    city: 'City',
+    sellPrice: 'Sell Price',
+    buyPrice: 'Buy Price',
+    lastUpdate: 'Last Update',
+    noRecentData: 'No recent data',
+    readyToSearch: 'Ready to search?',
+    searchDesc: 'Enter the item\'s technical ID above to see real-time prices and find profit opportunities.',
+    searchError: 'Search error',
+    marketOpp: 'Market Opportunities',
+    oppDesc: 'Configure the filters below and scan the 250 most popular items.',
+    found: 'Found',
+    scan: 'Scan',
+    buyAt: 'Buy at:',
+    sellAt: 'Sell at:',
+    filterTier: 'Filter by Tier:',
+    all: 'ALL',
+    minProfit: 'Min Profit per Item:',
+    noOppProfit: 'No opportunities with this profit',
+    lowerFilter: 'Try lowering the minimum profit filter to see more results.',
+    noOppLoaded: 'No opportunities loaded',
+    clickScan: 'Click the "Scan Market" button above to find the best price differences between cities.',
+    scanning: 'Scanning Market...',
+    scanWait: 'This may take a few seconds while we process the API data.',
+    safe: 'Safe',
+    medium: 'Medium',
+    risk: 'Risk',
+    buyIn: 'Buy at',
+    sellIn: 'Sell at',
+    volume3d: 'Volume (3d)',
+    estProfit: 'Estimated Profit',
+    viewDetails: 'View Full Details',
+    footerDesc: 'Data is provided by the community and may not reflect exact in-game prices in real-time. Use with caution for high-risk market decisions.',
+    databaseDesc: 'Database: {count} popular items pre-loaded. Manual search supports all in-game items via technical ID.',
+    silver: 'Silver',
+    noData: 'No data'
+  }
+};
+
 export default function App() {
+  const [language, setLanguage] = useState<'pt' | 'en'>('pt');
+  const t = TRANSLATIONS[language];
+  
   const [activeTab, setActiveTab] = useState<'search' | 'opportunities'>('search');
   const [itemId, setItemId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -69,7 +189,99 @@ export default function App() {
   const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const [buyCities, setBuyCities] = useState<string[]>(['Lymhurst']);
   const [sellCities, setSellCities] = useState<string[]>(['Caerleon', 'Black Market']);
-  const [showOnlyEquipment, setShowOnlyEquipment] = useState(false);
+  const [minProfit, setMinProfit] = useState(0);
+  const [tierFilter, setTierFilter] = useState<'all' | '6-' | '6+'>('all');
+
+  const getItemName = (id: string) => {
+    const item = POPULAR_ITEMS.find(i => i.id === id);
+    if (!item) return id;
+    
+    if (language === 'pt') return item.name;
+    
+    // If English name is explicitly provided in the object
+    if ((item as any).name_en) return (item as any).name_en;
+    
+    // Fallback: Basic translation logic for patterns
+    let name = item.name;
+    
+    // Tiers mapping
+    const tiers: Record<string, string> = {
+      'T1': 'Beginner', 'T2': 'Novice', 'T3': 'Journeyman',
+      'T4': 'Adept', 'T5': 'Expert', 'T6': 'Master',
+      'T7': 'Grandmaster', 'T8': 'Elder'
+    };
+    
+    // Common prefixes/items
+    const mapping: Record<string, string> = {
+      'Bolsa do Recruta': "Adept's Bag",
+      'Bolsa do Especialista': "Expert's Bag",
+      'Bolsa do Perito': "Master's Bag",
+      'Bolsa do Mestre': "Grandmaster's Bag",
+      'Bolsa do Grão-Mestre': "Elder's Bag",
+      'Capa do Recruta': "Adept's Cape",
+      'Capa do Especialista': "Expert's Cape",
+      'Capa do Perito': "Master's Cape",
+      'Capa do Mestre': "Grandmaster's Cape",
+      'Capa do Grão-Mestre': "Elder's Cape",
+      'Cavalo de Montaria': 'Riding Horse',
+      'Boi de Transporte': 'Transport Ox',
+      'Elmo de Soldado': 'Soldier Helmet',
+      'Armadura de Soldado': 'Soldier Armor',
+      'Botas de Soldado': 'Soldier Boots',
+      'Espada Larga': 'Broadsword',
+      'Machado de Batalha': 'Battleaxe',
+      'Cajado de Fogo': 'Fire Staff',
+      'Cajado Sagrado': 'Holy Staff',
+      'Cajado da Natureza': 'Nature Staff',
+      'Capuz do Estudioso': 'Scholar Cowl',
+      'Robe do Estudioso': 'Scholar Robe',
+      'Sandálias do Estudioso': 'Scholar Sandals',
+      'Capuz do Clérigo': 'Cleric Cowl',
+      'Robe do Clérigo': 'Cleric Robe',
+      'Sandálias do Clérigo': 'Cleric Sandals',
+      'Capuz do Mago': 'Mage Cowl',
+      'Robe do Mago': 'Mage Robe',
+      'Sandálias do Mago': 'Mage Sandals',
+      'Capuz do Mercenário': 'Mercenary Hood',
+      'Jaqueta do Mercenário': 'Mercenary Jacket',
+      'Sapatos do Mercenário': 'Mercenary Shoes',
+      'Capuz do Assassino': 'Assassin Hood',
+      'Jaqueta do Assassino': 'Assassin Jacket',
+      'Sapatos do Assassino': 'Assassin Shoes',
+      'Capuz do Caçador': 'Hunter Hood',
+      'Jaqueta do Caçador': 'Hunter Jacket',
+      'Sapatos do Caçador': 'Hunter Shoes',
+      'Elmo do Soldado': 'Soldier Helmet',
+      'Armadura do Soldado': 'Soldier Armor',
+      'Botas do Soldado': 'Soldier Boots',
+      'Elmo do Cavaleiro': 'Knight Helmet',
+      'Armadura do Cavaleiro': 'Knight Armor',
+      'Botas do Cavaleiro': 'Knight Boots',
+      'Elmo do Guardião': 'Guardian Helmet',
+      'Armadura do Guardião': 'Guardian Armor',
+      'Botas do Guardião': 'Guardian Boots',
+      'Escudo': 'Shield',
+      'Tocha': 'Torch',
+      'Tomo de Feitiços': 'Tome of Spells'
+    };
+
+    for (const [pt, en] of Object.entries(mapping)) {
+      if (name.includes(pt)) {
+        name = name.replace(pt, en);
+        break;
+      }
+    }
+
+    // Replace Tiers in parentheses
+    Object.entries(tiers).forEach(([ptTier, enTier]) => {
+      name = name.replace(`(${ptTier})`, `(${enTier} ${ptTier})`);
+      name = name.replace(`(${ptTier}.1)`, `(${enTier} ${ptTier}.1)`);
+      name = name.replace(`(${ptTier}.2)`, `(${enTier} ${ptTier}.2)`);
+      name = name.replace(`(${ptTier}.3)`, `(${enTier} ${ptTier}.3)`);
+    });
+
+    return name;
+  };
 
   const isEquipment = (id: string) => {
     const equipmentKeywords = ['BAG', 'CAPE', 'MOUNT', 'HEAD', 'ARMOR', 'SHOES', 'MAIN', '2H', 'OFF', 'KNUCKLES'];
@@ -79,9 +291,26 @@ export default function App() {
   };
 
   const filteredItems = useMemo(() => {
-    if (!showOnlyEquipment) return POPULAR_ITEMS;
     return POPULAR_ITEMS.filter(item => isEquipment(item.id));
-  }, [showOnlyEquipment]);
+  }, []);
+
+  const filteredOpportunities = useMemo(() => {
+    return opportunities.filter(opp => {
+      const meetsProfit = opp.profit >= minProfit;
+      if (!meetsProfit) return false;
+      
+      if (tierFilter === 'all') return true;
+      
+      const tierMatch = opp.item_id.match(/^T(\d)/);
+      if (!tierMatch) return true;
+      
+      const tier = parseInt(tierMatch[1]);
+      if (tierFilter === '6-') return tier <= 6;
+      if (tierFilter === '6+') return tier >= 6;
+      
+      return true;
+    });
+  }, [opportunities, minProfit, tierFilter]);
 
   useEffect(() => {
     const checkApi = async () => {
@@ -219,7 +448,7 @@ export default function App() {
 
           const profit = bestSell.buy_price_max - bestBuy.sell_price_min;
           if (profit > 0) {
-            const itemName = POPULAR_ITEMS.find(i => i.id === id)?.name || id;
+            const itemName = getItemName(id);
             foundOpportunities.push({
               item_id: id,
               item_name: itemName,
@@ -241,12 +470,8 @@ export default function App() {
         const confA = getConfidence(a.buy_updated, a.sell_updated);
         const confB = getConfidence(b.buy_updated, b.sell_updated);
         
-        const score = { 'Seguro': 3, 'Mediano': 2, 'Risco': 1 };
-        const scoreA = score[confA.label as keyof typeof score] || 0;
-        const scoreB = score[confB.label as keyof typeof score] || 0;
-        
-        if (scoreA !== scoreB) return scoreB - scoreA;
-        return b.profit_percent - a.profit_percent;
+        if (confA.score !== confB.score) return confB.score - confA.score;
+        return b.profit - a.profit;
       }));
       setLastScanTime(new Date());
     } catch (err) {
@@ -286,9 +511,9 @@ export default function App() {
   }, [prices]);
 
   const formatDate = (dateStr: string) => {
-    if (!dateStr || dateStr.startsWith('0001')) return 'Sem dados recentes';
+    if (!dateStr || dateStr.startsWith('0001')) return t.noRecentData;
     const date = new Date(dateStr);
-    return date.toLocaleString('pt-BR', {
+    return date.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US', {
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',
@@ -313,19 +538,22 @@ export default function App() {
       bg: 'bg-emerald-500/10', 
       text: 'text-emerald-500', 
       border: 'border-emerald-500/20', 
-      label: 'Seguro' 
+      label: t.safe,
+      score: 3
     };
     if (diffHours < 4) return { 
       bg: 'bg-amber-500/10', 
       text: 'text-amber-500', 
       border: 'border-amber-500/20', 
-      label: 'Mediano' 
+      label: t.medium,
+      score: 2
     };
     return { 
       bg: 'bg-red-500/10', 
       text: 'text-red-500', 
       border: 'border-red-500/20', 
-      label: 'Risco' 
+      label: t.risk,
+      score: 1
     };
   };
 
@@ -340,35 +568,23 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-white">Albion Radar</h1>
-              <p className="text-xs text-zinc-500 font-mono uppercase tracking-widest">Arbitrage & Price Tracker</p>
+              <p className="text-xs text-zinc-500 font-mono uppercase tracking-widest">{t.subtitle}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowOnlyEquipment(!showOnlyEquipment)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                showOnlyEquipment 
-                  ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400' 
-                  : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              <ShoppingCart className="w-3 h-3" />
-              {showOnlyEquipment ? 'Apenas Equipamentos' : 'Todos os Itens'}
-            </button>
-
             <div className="flex items-center bg-zinc-900/50 p-1 rounded-xl border border-white/5">
             <button
               onClick={() => setActiveTab('search')}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'search' ? 'bg-emerald-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
-              Consulta
+              {t.searchTab}
             </button>
             <button
               onClick={() => setActiveTab('opportunities')}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === 'opportunities' ? 'bg-emerald-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
-              Oportunidades
+              {t.oppTab}
             </button>
           </div>
         </div>
@@ -383,7 +599,7 @@ export default function App() {
                 <input
                   type="text"
                   list="item-list"
-                  placeholder="Nome ou ID do item..."
+                  placeholder={t.searchPlaceholder}
                   value={itemId}
                   onChange={(e) => setItemId(e.target.value)}
                   className="w-full bg-zinc-900 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-zinc-600"
@@ -399,7 +615,7 @@ export default function App() {
                 disabled={loading}
                 className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/20"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buscar'}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t.searchBtn}
               </button>
               {searchedItem && (
                 <button
@@ -407,7 +623,7 @@ export default function App() {
                   onClick={() => fetchPrices(searchedItem)}
                   disabled={loading}
                   className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 p-2 rounded-lg transition-colors border border-white/5"
-                  title="Atualizar preços"
+                  title={t.refreshBtn}
                 >
                   <Clock className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
@@ -419,7 +635,7 @@ export default function App() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-white/5 rounded-lg">
                 <div className={`w-2 h-2 rounded-full ${apiOnline === null ? 'bg-zinc-500' : apiOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
-                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">API {apiOnline === null ? '...' : apiOnline ? 'Online' : 'Offline'}</span>
+                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">API {apiOnline === null ? '...' : apiOnline ? t.apiOnline : t.apiOffline}</span>
               </div>
               
               {lastScanTime && (
@@ -428,27 +644,6 @@ export default function App() {
                   {lastScanTime.toLocaleTimeString()}
                 </div>
               )}
-
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => {
-                    setOpportunities([]);
-                    setLastScanTime(null);
-                  }}
-                  className="p-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 rounded-lg transition-colors border border-white/5"
-                  title="Limpar Resultados"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={scanOpportunities}
-                  disabled={scanning}
-                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/20"
-                >
-                  {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                  Escanear
-                </button>
-              </div>
             </div>
           )}
         </div>
@@ -469,21 +664,43 @@ export default function App() {
                   <div className="w-20 h-20 bg-zinc-900/50 rounded-full flex items-center justify-center mb-6 border border-white/5">
                     <Info className="w-10 h-10 text-zinc-700" />
                   </div>
-                  <h2 className="text-2xl font-light text-zinc-400 mb-2">Pronto para consultar?</h2>
+                  <h2 className="text-2xl font-light text-zinc-400 mb-2">{t.readyToSearch}</h2>
                   <p className="text-zinc-600 max-w-md">
-                    Digite o ID técnico do item acima para ver os preços em tempo real e encontrar oportunidades de lucro.
+                    {t.searchDesc}
                   </p>
-                  <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {filteredItems.slice(0, 8).map(item => (
-                      <button
-                        key={item.id}
-                        onClick={() => { setItemId(item.id); fetchPrices(item.id); }}
-                        className="px-4 py-2 bg-zinc-900/30 border border-white/5 rounded-md text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-left truncate"
-                      >
-                        {item.name}
-                      </button>
-                    ))}
+
+                  <div className="mt-8 flex items-center gap-2 p-1 bg-zinc-900/50 border border-white/5 rounded-xl">
+                    <button
+                      onClick={() => setLanguage('pt')}
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${language === 'pt' ? 'bg-emerald-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                      PT-BR
+                    </button>
+                    <button
+                      onClick={() => setLanguage('en')}
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${language === 'en' ? 'bg-emerald-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                      EN-US
+                    </button>
                   </div>
+
+                  <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {filteredItems.slice(0, 8).map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => { setItemId(item.id); fetchPrices(item.id); }}
+                          className="flex items-center gap-3 px-3 py-2 bg-zinc-900/30 border border-white/5 rounded-lg text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-left group"
+                        >
+                          <img 
+                            src={`https://render.albiononline.com/v1/item/${item.id}.png`} 
+                            alt={item.id}
+                            className="w-8 h-8 object-contain opacity-50 group-hover:opacity-100 transition-opacity"
+                            referrerPolicy="no-referrer"
+                          />
+                          <span className="truncate">{item.name}</span>
+                        </button>
+                      ))}
+                    </div>
                 </div>
               )}
 
@@ -491,7 +708,7 @@ export default function App() {
                 <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl flex items-start gap-4 mb-8">
                   <AlertCircle className="text-red-500 shrink-0 w-6 h-6" />
                   <div>
-                    <h3 className="text-red-500 font-semibold mb-1">Erro na busca</h3>
+                    <h3 className="text-red-500 font-semibold mb-1">{t.searchError}</h3>
                     <p className="text-red-200/70 text-sm">{error}</p>
                   </div>
                 </div>
@@ -504,75 +721,75 @@ export default function App() {
                     <div className="bg-zinc-900/50 border border-emerald-500/20 p-5 rounded-2xl">
                       <div className="flex items-center gap-2 text-emerald-500 text-xs font-bold uppercase tracking-wider mb-3">
                         <ShoppingCart className="w-4 h-4" />
-                        Melhor COMPRA
+                        {t.bestBuy}
                       </div>
                       {minSell ? (
                         <div>
                           <div className="text-2xl font-bold text-white mb-1">{minSell.city}</div>
-                          <div className="text-emerald-400 font-mono text-lg">{formatPrice(minSell.sell_price_min)} <span className="text-xs opacity-60">Prata</span></div>
+                          <div className="text-emerald-400 font-mono text-lg">{formatPrice(minSell.sell_price_min)} <span className="text-xs opacity-60">{t.silver}</span></div>
                         </div>
                       ) : (
-                        <div className="text-zinc-500 italic">Sem dados</div>
+                        <div className="text-zinc-500 italic">{t.noData}</div>
                       )}
                     </div>
 
                     <div className="bg-zinc-900/50 border border-blue-500/20 p-5 rounded-2xl">
                       <div className="flex items-center gap-2 text-blue-500 text-xs font-bold uppercase tracking-wider mb-3">
                         <DollarSign className="w-4 h-4" />
-                        Melhor VENDA
+                        {t.bestSell}
                       </div>
                       {maxBuy ? (
                         <div>
                           <div className="text-2xl font-bold text-white mb-1">{maxBuy.city}</div>
-                          <div className="text-blue-400 font-mono text-lg">{formatPrice(maxBuy.buy_price_max)} <span className="text-xs opacity-60">Prata</span></div>
+                          <div className="text-blue-400 font-mono text-lg">{formatPrice(maxBuy.buy_price_max)} <span className="text-xs opacity-60">{t.silver}</span></div>
                         </div>
                       ) : (
-                        <div className="text-zinc-500 italic">Sem dados</div>
+                        <div className="text-zinc-500 italic">{t.noData}</div>
                       )}
                     </div>
 
                     <div className="bg-zinc-900/50 border border-amber-500/20 p-5 rounded-2xl">
                       <div className="flex items-center gap-2 text-amber-500 text-xs font-bold uppercase tracking-wider mb-3">
                         <TrendingUp className="w-4 h-4" />
-                        Lucro Flip
+                        {t.flipProfit}
                       </div>
                       {arbitrage !== null ? (
                         <div>
                           <div className="text-2xl font-bold text-white mb-1">
-                            {arbitrage > 0 ? 'Oportunidade!' : 'Sem Lucro'}
+                            {arbitrage > 0 ? t.opportunity : t.noProfit}
                           </div>
                           <div className={`font-mono text-lg ${arbitrage > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                            {formatPrice(arbitrage)} <span className="text-xs opacity-60">Prata</span>
+                            {formatPrice(arbitrage)} <span className="text-xs opacity-60">{t.silver}</span>
                           </div>
                         </div>
                       ) : (
-                        <div className="text-zinc-500 italic">Dados insuficientes</div>
+                        <div className="text-zinc-500 italic">{t.insufficientData}</div>
                       )}
                     </div>
 
                     <div className="bg-zinc-900/50 border border-purple-500/20 p-5 rounded-2xl">
                       <div className="flex items-center gap-2 text-purple-500 text-xs font-bold uppercase tracking-wider mb-3">
                         <ArrowRight className="w-4 h-4" />
-                        Lucro Transporte
+                        {t.transportProfit}
                       </div>
                       {transport !== null ? (
                         <div>
                           <div className="text-2xl font-bold text-white mb-1">
-                            {transport > 0 ? 'Oportunidade!' : 'Sem Lucro'}
+                            {transport > 0 ? t.opportunity : t.noProfit}
                           </div>
                           <div className={`font-mono text-lg ${transport > 0 ? 'text-purple-400' : 'text-zinc-500'}`}>
-                            {formatPrice(transport)} <span className="text-xs opacity-60">Prata</span>
+                            {formatPrice(transport)} <span className="text-xs opacity-60">{t.silver}</span>
                           </div>
                         </div>
                       ) : (
-                        <div className="text-zinc-500 italic">Dados insuficientes</div>
+                        <div className="text-zinc-500 italic">{t.insufficientData}</div>
                       )}
                     </div>
 
                     <div className="bg-zinc-900/50 border border-zinc-500/20 p-5 rounded-2xl">
                       <div className="flex items-center gap-2 text-zinc-400 text-xs font-bold uppercase tracking-wider mb-3">
                         <TrendingUp className="w-4 h-4" />
-                        Volume Diário (3d)
+                        {t.dailyVolume}
                       </div>
                       {avgVolume !== null ? (
                         <div>
@@ -580,26 +797,34 @@ export default function App() {
                             {avgVolume.toLocaleString()}
                           </div>
                           <div className="text-zinc-500 text-xs">
-                            Vendas/dia (Média 3 dias)
+                            {t.salesPerDay}
                           </div>
                         </div>
                       ) : (
-                        <div className="text-zinc-500 italic">Sem dados de volume</div>
+                        <div className="text-zinc-500 italic">{t.noVolumeData}</div>
                       )}
                     </div>
                   </div>
 
                   <div className="flex items-end justify-between border-b border-white/5 pb-4">
                     <div>
-                      <span className="text-xs font-mono text-emerald-500 uppercase tracking-widest mb-1 block">Resultados para</span>
-                      <h2 className="text-3xl font-bold text-white tracking-tight">{searchedItem}</h2>
+                      <span className="text-xs font-mono text-emerald-500 uppercase tracking-widest mb-1 block">{t.resultsFor}</span>
+                      <div className="flex items-center gap-4">
+                        <img 
+                          src={`https://render.albiononline.com/v1/item/${searchedItem}.png`} 
+                          alt={searchedItem}
+                          className="w-16 h-16 object-contain bg-zinc-900/50 rounded-lg border border-white/5"
+                          referrerPolicy="no-referrer"
+                        />
+                        <h2 className="text-3xl font-bold text-white tracking-tight">{getItemName(searchedItem)}</h2>
+                      </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <button
                         onClick={() => { setSearchedItem(''); setPrices([]); setItemId(''); setError(null); }}
                         className="text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-4"
                       >
-                        Limpar
+                        {t.clear}
                       </button>
                     </div>
                   </div>
@@ -610,20 +835,20 @@ export default function App() {
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-zinc-900/50 text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold">
-                            <th className="px-6 py-4 border-b border-white/5">Cidade</th>
+                            <th className="px-6 py-4 border-b border-white/5">{t.city}</th>
                             <th className="px-6 py-4 border-b border-white/5 group relative cursor-help">
-                              Venda (Sell Price)
+                              {t.sellPrice}
                               <div className="absolute hidden group-hover:block bg-zinc-800 text-white p-2 rounded text-[9px] normal-case tracking-normal w-40 z-20 top-full left-0 mt-1 shadow-xl border border-white/10">
                                 Preço mínimo que os jogadores estão pedindo para vender o item.
                               </div>
                             </th>
                             <th className="px-6 py-4 border-b border-white/5 group relative cursor-help">
-                              Compra (Buy Price)
+                              {t.buyPrice}
                               <div className="absolute hidden group-hover:block bg-zinc-800 text-white p-2 rounded text-[9px] normal-case tracking-normal w-40 z-20 top-full left-0 mt-1 shadow-xl border border-white/10">
                                 Preço máximo que os jogadores estão oferecendo para comprar o item.
                               </div>
                             </th>
-                            <th className="px-6 py-4 border-b border-white/5">Última Atualização</th>
+                            <th className="px-6 py-4 border-b border-white/5">{t.lastUpdate}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -661,7 +886,7 @@ export default function App() {
                                 <td className="px-6 py-5">
                                   <div className="flex items-center gap-2 text-xs text-zinc-500">
                                     <Clock className="w-3 h-3" />
-                                    {data ? formatDate(data.sell_price_min_date) : 'Sem dados'}
+                                    {data ? formatDate(data.sell_price_min_date) : t.noRecentData}
                                   </div>
                                 </td>
                               </tr>
@@ -685,13 +910,13 @@ export default function App() {
               <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Oportunidades de Mercado</h2>
-                    <p className="text-xs text-zinc-500 mt-1">Configure os filtros abaixo e escaneie os 250 itens mais populares.</p>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">{t.marketOpp}</h2>
+                    <p className="text-xs text-zinc-500 mt-1">{t.oppDesc}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {opportunities.length > 0 && (
+                    {filteredOpportunities.length > 0 && (
                       <span className="text-xs font-mono text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                        {opportunities.length} Encontradas
+                        {filteredOpportunities.length} {t.found}
                       </span>
                     )}
                     <button
@@ -700,7 +925,7 @@ export default function App() {
                       className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/20"
                     >
                       {scanning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                      Escanear
+                      {t.scan}
                     </button>
                   </div>
                 </div>
@@ -708,7 +933,7 @@ export default function App() {
                 <div className="grid grid-cols-1 gap-6 pt-4 border-t border-white/5">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Comprar em:</label>
+                      <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">{t.buyAt}</label>
                       <div className="flex flex-wrap gap-2">
                         {CITIES.map(city => (
                           <button
@@ -732,7 +957,7 @@ export default function App() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Vender em:</label>
+                      <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">{t.sellAt}</label>
                       <div className="flex flex-wrap gap-2">
                         {CITIES.map(city => (
                           <button
@@ -755,18 +980,70 @@ export default function App() {
                         ))}
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">{t.filterTier}</label>
+                      <div className="flex gap-2">
+                        {(['all', '6-', '6+'] as const).map(f => (
+                          <button
+                            key={f}
+                            onClick={() => setTierFilter(f)}
+                            className={`flex-1 py-1.5 rounded text-[10px] font-bold border transition-all ${
+                              tierFilter === f
+                                ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400'
+                                : 'bg-zinc-950 border-white/10 text-zinc-500 hover:border-white/20'
+                            }`}
+                          >
+                            {f === 'all' ? t.all : f === '6-' ? 'TIER 6-' : 'TIER 6+'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">{t.minProfit}</label>
+                        <span className="text-xs font-mono text-emerald-400">{formatPrice(minProfit)} Silver</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="200000" 
+                        step="1000"
+                        value={minProfit}
+                        onChange={(e) => setMinProfit(parseInt(e.target.value))}
+                        className="w-full h-1.5 bg-zinc-950 rounded-lg appearance-none cursor-pointer accent-emerald-500 border border-white/5"
+                      />
+                      <div className="flex justify-between text-[8px] text-zinc-600 font-mono">
+                        <span>0</span>
+                        <span>50k</span>
+                        <span>100k</span>
+                        <span>150k</span>
+                        <span>200k</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {filteredOpportunities.length === 0 && !scanning && opportunities.length > 0 && (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="w-20 h-20 bg-zinc-900/50 rounded-full flex items-center justify-center mb-6 border border-white/5">
+                    <Filter className="w-10 h-10 text-zinc-700" />
+                  </div>
+                  <h2 className="text-2xl font-light text-zinc-400 mb-2">{t.noOppProfit}</h2>
+                  <p className="text-zinc-600 max-w-md mb-8">
+                    {t.lowerFilter}
+                  </p>
+                </div>
+              )}
 
               {opportunities.length === 0 && !scanning && (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="w-20 h-20 bg-zinc-900/50 rounded-full flex items-center justify-center mb-6 border border-white/5">
                     <Zap className="w-10 h-10 text-zinc-700" />
                   </div>
-                  <h2 className="text-2xl font-light text-zinc-400 mb-2">Nenhuma oportunidade carregada</h2>
+                  <h2 className="text-2xl font-light text-zinc-400 mb-2">{t.noOppLoaded}</h2>
                   <p className="text-zinc-600 max-w-md mb-8">
-                    Clique no botão "Escanear Mercado" acima para buscar as melhores diferenças de preço entre cidades.
+                    {t.clickScan}
                   </p>
                 </div>
               )}
@@ -774,13 +1051,13 @@ export default function App() {
               {scanning && (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
-                  <h3 className="text-xl font-semibold text-white">Escaneando Mercado...</h3>
-                  <p className="text-zinc-500 text-sm mt-2">Isso pode levar alguns segundos enquanto processamos os dados da API.</p>
+                  <h3 className="text-xl font-semibold text-white">{t.scanning}</h3>
+                  <p className="text-zinc-500 text-sm mt-2">{t.scanWait}</p>
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {opportunities.map((opp, idx) => (
+                {filteredOpportunities.map((opp, idx) => (
                   <motion.div
                     key={opp.item_id}
                     initial={{ opacity: 0, y: 10 }}
@@ -789,19 +1066,28 @@ export default function App() {
                     className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-5 hover:border-emerald-500/30 transition-all group"
                   >
                     <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="font-bold text-white group-hover:text-emerald-400 transition-colors">{opp.item_name}</h3>
-                        <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">{opp.item_id}</span>
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={`https://render.albiononline.com/v1/item/${opp.item_id}.png`} 
+                          alt={opp.item_id}
+                          className="w-12 h-12 object-contain bg-zinc-900/50 rounded-lg border border-white/5"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div>
+                          <h3 className="font-bold text-white group-hover:text-emerald-400 transition-colors">{opp.item_name}</h3>
+                          <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">{opp.item_id}</span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {(() => {
                           const conf = getConfidence(opp.buy_updated, opp.sell_updated);
+                          const label = conf.label === 'Seguro' ? t.safe : conf.label === 'Mediano' ? t.medium : t.risk;
                           return (
                             <div 
                               className={`text-[10px] font-bold px-2 py-1 rounded border ${conf.bg} ${conf.text} ${conf.border}`}
                               title={`Dados de até ${Math.round((new Date().getTime() - Math.min(new Date(opp.buy_updated).getTime(), new Date(opp.sell_updated).getTime())) / (1000 * 60 * 60))}h atrás`}
                             >
-                              {conf.label}
+                              {label}
                             </div>
                           );
                         })()}
@@ -815,23 +1101,23 @@ export default function App() {
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2 text-zinc-400">
                           <ShoppingCart className="w-3 h-3" />
-                          Compre em <span className="text-zinc-200 font-semibold">{opp.buy_city}</span>
+                          {t.buyIn} <span className="text-zinc-200 font-semibold">{opp.buy_city}</span>
                         </div>
                         <span className="font-mono text-emerald-400">{formatPrice(opp.buy_price)}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2 text-zinc-400">
                           <DollarSign className="w-3 h-3" />
-                          Venda em <span className="text-zinc-200 font-semibold">{opp.sell_city}</span>
+                          {t.sellIn} <span className="text-zinc-200 font-semibold">{opp.sell_city}</span>
                         </div>
                         <span className="font-mono text-blue-400">{formatPrice(opp.sell_price)}</span>
                       </div>
                       <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider">Volume (3d)</span>
+                        <span className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider">{t.volume3d}</span>
                         <span className="font-mono text-zinc-400 text-xs">{opp.avg_volume?.toLocaleString() || '---'} / dia</span>
                       </div>
                       <div className="pt-2 flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider">Lucro Estimado</span>
+                        <span className="text-[10px] uppercase font-bold text-zinc-600 tracking-wider">{t.estProfit}</span>
                         <span className="font-mono text-amber-400 font-bold">{formatPrice(opp.profit)}</span>
                       </div>
                     </div>
@@ -840,7 +1126,7 @@ export default function App() {
                       onClick={() => { setItemId(opp.item_id); fetchPrices(opp.item_id); setActiveTab('search'); }}
                       className="w-full mt-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all border border-white/5"
                     >
-                      Ver Detalhes Completos
+                      {t.viewDetails}
                     </button>
                   </motion.div>
                 ))}
@@ -852,10 +1138,12 @@ export default function App() {
 
       <footer className="mt-auto border-t border-white/5 py-10">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Powered by Albion Online Data Project</p>
+          <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Powered by AlissonJM</p>
           <p className="text-zinc-700 text-[10px] max-w-lg mx-auto leading-relaxed">
-            Os dados são fornecidos pela comunidade e podem não refletir os preços exatos no jogo em tempo real. 
-            Use com cautela para decisões de mercado de alto risco.
+            {t.footerDesc}
+          </p>
+          <p className="mt-4 text-[9px] text-zinc-800 uppercase tracking-tighter">
+            {t.databaseDesc.replace('{count}', POPULAR_ITEMS.length.toString())}
           </p>
         </div>
       </footer>
