@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Albion Market Pro - Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --surface-color: #1a1d23;
+            --surface-hover: #252a33;
+            --accent-color: #d4af37;
+            --accent-hover: #f1c40f;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --border-color: #2d3139;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- Top Bar --- */
+        .top-bar {
+            height: 70px;
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .search-container {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 16px 10px 40px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            fill: var(--text-secondary);
+        }
+
+        /* --- Dropdowns --- */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-btn {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            min-width: 120px;
+        }
+
+        .dropdown-btn:hover {
+            border-color: var(--accent-color);
+            background-color: var(--surface-hover);
+        }
+
+        .dropdown-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: var(--text-secondary);
+            transition: transform 0.3s;
+        }
+
+        .dropdown.active .dropdown-btn svg {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-width: 200px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: var(--transition);
+            z-index: 1000;
+        }
+
+        .dropdown.active .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        /* --- City Selector --- */
+        .city-selector {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 0 12px;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+        }
+
+        .city-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .city-checkbox:hover {
+            background-color: var(--surface-hover);
+        }
+
+        .city-checkbox input {
+            display: none;
+        }
+
+        .custom-check {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .city-checkbox input:checked + .custom-check {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .city-checkbox input:checked + .custom-check::after {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 1px;
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .city-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: var(--transition);
+        }
+
+        .city-checkbox input:checked ~ .city-label {
+            color: var(--accent-color);
+        }
+
+        /* --- Premium Badge --- */
+        .premium-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--accent-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-left: auto;
+        }
+
+        .premium-badge:hover {
+            background-color: rgba(212, 175, 55, 0.2);
+            transform: scale(1.05);
+        }
+
+        .premium-badge svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--accent-color);
+        }
+
+        .premium-text {
+            color: var(--accent-color);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- Cascading Menu --- */
+        .category-menu {
+            padding: 8px 0;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .menu-item {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+            color: var(--text-secondary);
+            position: relative;
+        }
+
+        .menu-item:hover {
+            background-color: var(--surface-hover);
+            color: var(--accent-color);
+        }
+
+        .menu-item.active {
+            color: var(--accent-color);
+            background-color: rgba(212, 175, 55, 0.05);
+        }
+
+        .menu-item svg {
+            width: 10px;
+            height: 10px;
+            fill: currentColor;
+            opacity: 0.5;
+        }
+
+        .submenu {
+            position: absolute;
+            left: 100%;
+            top: 0;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-width: 180px;
+            box-shadow: 10px 10px 25px rgba(0,0,0,0.5);
+            display: none;
+            padding: 8px 0;
+        }
+
+        .menu-item:hover > .submenu {
+            display: block;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* --- Tier Menu --- */
+        .tier-menu {
+            padding: 16px;
+            width: 280px;
+        }
+
+        .tier-info {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .tier-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tier-item {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            transition: var(--transition);
+        }
+
+        .tier-item:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .tier-item.selected {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        .enchantment-selector {
+            display: flex;
+            gap: 6px;
+            justify-content: space-between;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            display: none; /* Hidden until tier selected */
+        }
+
+        .enchant-item {
+            flex: 1;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: var(--transition);
+        }
+
+        .enchant-item:hover {
+            border-color: var(--accent-color);
+        }
+
+        .enchant-item.selected {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            background-color: rgba(212, 175, 55, 0.1);
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            padding: 40px 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .welcome-card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        .welcome-card h2 {
+            font-size: 32px;
+            margin-bottom: 16px;
+            background: linear-gradient(to right, #fff, var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-card p {
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .status-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 1024px) {
+            .city-selector {
+                display: none; /* Hide on small screens for simplicity */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="search-container">
+            <svg class="search-icon" viewBox="0 0 24 24">
+                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <input type="text" class="search-input" placeholder="Buscar itens...">
+        </div>
+
+        <!-- Tier Dropdown -->
+        <div class="dropdown" id="tierDropdown">
+            <button class="dropdown-btn" onclick="toggleDropdown('tierDropdown')">
+                <span id="selectedTierText">Tier</span>
+                <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+            <div class="dropdown-menu tier-menu">
+                <p class="tier-info">Clique em um tier para selecionar encantamentos</p>
+                <div class="tier-grid">
+                    <div class="tier-item" onclick="selectTier(4)">T4</div>
+                    <div class="tier-item" onclick="selectTier(5)">T5</div>
+                    <div class="tier-item" onclick="selectTier(6)">T6</div>
+                    <div class="tier-item" onclick="selectTier(7)">T7</div>
+                    <div class="tier-item" onclick="selectTier(8)">T8</div>
+                </div>
+                <div class="enchantment-selector" id="enchantmentSelector">
+                    <div class="enchant-item" onclick="selectEnchant(0)">.0</div>
+                    <div class="enchant-item" onclick="selectEnchant(1)">.1</div>
+                    <div class="enchant-item" onclick="selectEnchant(2)">.2</div>
+                    <div class="enchant-item" onclick="selectEnchant(3)">.3</div>
+                    <div class="enchant-item" onclick="selectEnchant(4)">.4</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Dropdown -->
+        <div class="dropdown" id="categoryDropdown">
+            <button class="dropdown-btn" onclick="toggleDropdown('categoryDropdown')">
+                <span id="selectedCategoryText">Categoria</span>
+                <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+            <div class="dropdown-menu category-menu">
+                <div class="menu-item active" onclick="selectCategory('Todas Categorias')">Todas Categorias</div>
+                
+                <div class="menu-item">
+                    Armas
+                    <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+                    <div class="submenu">
+                        <div class="menu-item" onclick="selectCategory('Espada')">Espada</div>
+                        <div class="menu-item" onclick="selectCategory('Machado')">Machado</div>
+                        <div class="menu-item" onclick="selectCategory('Maça')">Maça</div>
+                        <div class="menu-item" onclick="selectCategory('Martelo')">Martelo</div>
+                        <div class="menu-item" onclick="selectCategory('Luvas')">Luvas</div>
+                        <div class="menu-item" onclick="selectCategory('Besta')">Besta</div>
+                        <div class="menu-item" onclick="selectCategory('Arco')">Arco</div>
+                        <div class="menu-item" onclick="selectCategory('Adaga')">Adaga</div>
+                        <div class="menu-item" onclick="selectCategory('Lança')">Lança</div>
+                        <div class="menu-item" onclick="selectCategory('Bastão')">Bastão</div>
+                    </div>
+                </div>
+
+                <div class="menu-item">
+                    Mão Secundária
+                    <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+                    <div class="submenu">
+                        <div class="menu-item" onclick="selectCategory('Escudo')">Escudo</div>
+                        <div class="menu-item" onclick="selectCategory('Tomo')">Tomo</div>
+                    </div>
+                </div>
+
+                <div class="menu-item">
+                    Acessórios
+                    <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+                    <div class="submenu">
+                        <div class="menu-item" onclick="selectCategory('Bolsa')">Bolsa</div>
+                        <div class="menu-item" onclick="selectCategory('Capa')">Capa</div>
+                    </div>
+                </div>
+
+                <div class="menu-item">
+                    Capacetes
+                    <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+                    <div class="submenu">
+                        <div class="menu-item" onclick="selectCategory('Placa (Capacete)')">Placa</div>
+                        <div class="menu-item" onclick="selectCategory('Couro (Capacete)')">Couro</div>
+                        <div class="menu-item" onclick="selectCategory('Tecido (Capacete)')">Tecido</div>
+                    </div>
+                </div>
+
+                <div class="menu-item">
+                    Peitorais
+                    <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+                    <div class="submenu">
+                        <div class="menu-item" onclick="selectCategory('Placa (Peitoral)')">Placa</div>
+                        <div class="menu-item" onclick="selectCategory('Couro (Peitoral)')">Couro</div>
+                        <div class="menu-item" onclick="selectCategory('Tecido (Peitoral)')">Tecido</div>
+                    </div>
+                </div>
+
+                <div class="menu-item">
+                    Calçados
+                    <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+                    <div class="submenu">
+                        <div class="menu-item" onclick="selectCategory('Placa (Calçado)')">Placa</div>
+                        <div class="menu-item" onclick="selectCategory('Couro (Calçado)')">Couro</div>
+                        <div class="menu-item" onclick="selectCategory('Tecido (Calçado)')">Tecido</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- City Selector -->
+        <div class="city-selector">
+            <label class="city-checkbox">
+                <input type="checkbox" checked onchange="updateCities()">
+                <div class="custom-check"></div>
+                <span class="city-label">Bridgewatch</span>
+            </label>
+            <label class="city-checkbox">
+                <input type="checkbox" checked onchange="updateCities()">
+                <div class="custom-check"></div>
+                <span class="city-label">Fort Sterling</span>
+            </label>
+            <label class="city-checkbox">
+                <input type="checkbox" checked onchange="updateCities()">
+                <div class="custom-check"></div>
+                <span class="city-label">Martlock</span>
+            </label>
+            <label class="city-checkbox">
+                <input type="checkbox" checked onchange="updateCities()">
+                <div class="custom-check"></div>
+                <span class="city-label">Thetford</span>
+            </label>
+            <label class="city-checkbox">
+                <input type="checkbox" checked onchange="updateCities()">
+                <div class="custom-check"></div>
+                <span class="city-label">Lymhurst</span>
+            </label>
+            <label class="city-checkbox">
+                <input type="checkbox" onchange="updateCities()">
+                <div class="custom-check"></div>
+                <span class="city-label">Brecilien</span>
+            </label>
+            <label class="city-checkbox">
+                <input type="checkbox" checked onchange="updateCities()">
+                <div class="custom-check"></div>
+                <span class="city-label">Caerleon</span>
+            </label>
+        </div>
+
+        <!-- Premium Badge -->
+        <div class="premium-badge" id="premiumToggle" onclick="togglePremium()">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.39 2.1-1.39 1.47 0 2.01.59 2.1 1.58h1.55c-.11-1.66-1.11-2.73-2.65-3.06V5h-2v1.58c-1.39.3-2.5 1.21-2.5 2.61 0 1.71 1.41 2.58 3.46 3.11 2.03.51 2.43 1.29 2.43 2.1 0 1.13-1.01 1.58-2.2 1.58-1.57 0-2.26-.75-2.37-1.57H8.37c.13 1.79 1.35 2.69 2.94 3.02V19h2v-1.58c1.42-.3 2.69-1.13 2.69-2.72 0-2.03-1.61-2.74-3.69-3.26z"/>
+            </svg>
+            <span class="premium-text" id="premiumValue">PREMIUM: 6.5%</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="welcome-card">
+            <h2>Bem-vindo ao Albion Radar Pro</h2>
+            <p>Selecione as categorias e filtros acima para iniciar a análise em tempo real do mercado de Albion Online. Nosso sistema processa milhares de dados para encontrar as melhores oportunidades de lucro.</p>
+            
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-label">Categoria</span>
+                    <span class="status-value" id="statusCategory">Todas</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Tier Selecionado</span>
+                    <span class="status-value" id="statusTier">Nenhum</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Taxa de Mercado</span>
+                    <span class="status-value" id="statusTax">6.5%</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Cidades Ativas</span>
+                    <span class="status-value" id="statusCities">6</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- State Management ---
+        const state = {
+            category: 'Todas Categorias',
+            tier: null,
+            enchantment: 0,
+            premium: false,
+            cities: ['Bridgewatch', 'Fort Sterling', 'Martlock', 'Thetford', 'Lymhurst', 'Caerleon']
+        };
+
+        // --- Dropdown Logic ---
+        function toggleDropdown(id) {
+            const dropdown = document.getElementById(id);
+            const isActive = dropdown.classList.contains('active');
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('active'));
+            
+            if (!isActive) {
+                dropdown.classList.add('active');
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        window.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('active'));
+            }
+        });
+
+        // --- Category Selection ---
+        function selectCategory(name) {
+            state.category = name;
+            document.getElementById('selectedCategoryText').innerText = name;
+            document.getElementById('statusCategory').innerText = name;
+            
+            // Highlight active in menu
+            document.querySelectorAll('.category-menu .menu-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.innerText === name) item.classList.add('active');
+            });
+
+            document.getElementById('categoryDropdown').classList.remove('active');
+        }
+
+        // --- Tier & Enchantment Logic ---
+        function selectTier(t) {
+            state.tier = t;
+            state.enchantment = 0; // Reset enchantment when tier changes
+            
+            // Update UI
+            document.querySelectorAll('.tier-item').forEach(item => {
+                item.classList.remove('selected');
+                if (item.innerText === 'T' + t) item.classList.add('selected');
+            });
+
+            document.getElementById('enchantmentSelector').style.display = 'flex';
+            updateTierText();
+            
+            // Highlight default enchantment (.0)
+            selectEnchant(0);
+        }
+
+        function selectEnchant(e) {
+            state.enchantment = e;
+            
+            document.querySelectorAll('.enchant-item').forEach(item => {
+                item.classList.remove('selected');
+                if (item.innerText === '.' + e) item.classList.add('selected');
+            });
+
+            updateTierText();
+        }
+
+        function updateTierText() {
+            const text = `T${state.tier}.${state.enchantment}`;
+            document.getElementById('selectedTierText').innerText = text;
+            document.getElementById('statusTier').innerText = text;
+        }
+
+        // --- Premium Toggle ---
+        function togglePremium() {
+            state.premium = !state.premium;
+            const tax = state.premium ? '4%' : '6.5%';
+            document.getElementById('premiumValue').innerText = `PREMIUM: ${tax}`;
+            document.getElementById('statusTax').innerText = tax;
+            
+            const badge = document.getElementById('premiumToggle');
+            if (state.premium) {
+                badge.style.backgroundColor = 'rgba(212, 175, 55, 0.3)';
+            } else {
+                badge.style.backgroundColor = 'rgba(212, 175, 55, 0.1)';
+            }
+        }
+
+        // --- City Update ---
+        function updateCities() {
+            const activeCities = [];
+            document.querySelectorAll('.city-checkbox input').forEach(input => {
+                if (input.checked) {
+                    activeCities.push(input.parentElement.querySelector('.city-label').innerText);
+                }
+            });
+            state.cities = activeCities;
+            document.getElementById('statusCities').innerText = activeCities.length;
+        }
+
+        // Initialize
+        updateCities();
+    </script>
+</body>
+</html>
