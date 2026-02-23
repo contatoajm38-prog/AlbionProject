@@ -258,11 +258,33 @@ export default function App() {
     try {
       const itemIds = favorites.join(',');
       const apiLocations = CITIES.map(c => c.replace(/\s/g, '')).join(',');
-      const url = `https://west.albion-online-data.com/api/v2/stats/prices/${itemIds}.json?locations=${apiLocations}&qualities=1`;
+      const url = `https://west.albion-online-data.com/api/v2/stats/prices/${itemIds}.json?locations=${apiLocations}&qualities=1,2,3`;
       const res = await fetch(url);
       if (res.ok) {
         const data: PriceData[] = await res.json();
-        const grouped = data.reduce((acc, curr) => {
+        
+        // Merge qualities per item and city
+        const mergedData: PriceData[] = [];
+        const seen = new Map<string, PriceData>();
+        
+        data.forEach(curr => {
+          const key = `${curr.item_id}-${curr.city}`;
+          const existing = seen.get(key);
+          if (!existing) {
+            seen.set(key, { ...curr });
+          } else {
+            if (curr.sell_price_min > 0 && (existing.sell_price_min === 0 || curr.sell_price_min < existing.sell_price_min)) {
+              existing.sell_price_min = curr.sell_price_min;
+              existing.sell_price_min_date = curr.sell_price_min_date;
+            }
+            if (curr.buy_price_max > 0 && (existing.buy_price_max === 0 || curr.buy_price_max > existing.buy_price_max)) {
+              existing.buy_price_max = curr.buy_price_max;
+              existing.buy_price_max_date = curr.buy_price_max_date;
+            }
+          }
+        });
+
+        const grouped = Array.from(seen.values()).reduce((acc, curr) => {
           if (!acc[curr.item_id]) acc[curr.item_id] = [];
           acc[curr.item_id].push(curr);
           return acc;
@@ -470,7 +492,7 @@ export default function App() {
       const apiLocations = CITIES.map(c => c.replace(/\s/g, '')).join(',');
       
       // Fetch Current Prices
-      const priceUrl = `https://west.albion-online-data.com/api/v2/stats/prices/${formattedId}.json?locations=${apiLocations}&qualities=1`;
+      const priceUrl = `https://west.albion-online-data.com/api/v2/stats/prices/${formattedId}.json?locations=${apiLocations}&qualities=1,2,3`;
       
       // Fetch History (Volume)
       const historyUrl = `https://west.albion-online-data.com/api/v2/stats/history/${formattedId}.json?locations=${apiLocations}&time-scale=24`;
@@ -482,7 +504,27 @@ export default function App() {
 
       if (!priceRes.ok) throw new Error('Falha ao buscar preços.');
       
-      const priceData: PriceData[] = await priceRes.json();
+      const rawPriceData: PriceData[] = await priceRes.json();
+      
+      // Merge qualities per city
+      const mergedPrices: Record<string, PriceData> = {};
+      rawPriceData.forEach(curr => {
+        const cityKey = curr.city.toLowerCase();
+        if (!mergedPrices[cityKey]) {
+          mergedPrices[cityKey] = { ...curr };
+        } else {
+          if (curr.sell_price_min > 0 && (mergedPrices[cityKey].sell_price_min === 0 || curr.sell_price_min < mergedPrices[cityKey].sell_price_min)) {
+            mergedPrices[cityKey].sell_price_min = curr.sell_price_min;
+            mergedPrices[cityKey].sell_price_min_date = curr.sell_price_min_date;
+          }
+          if (curr.buy_price_max > 0 && (mergedPrices[cityKey].buy_price_max === 0 || curr.buy_price_max > mergedPrices[cityKey].buy_price_max)) {
+            mergedPrices[cityKey].buy_price_max = curr.buy_price_max;
+            mergedPrices[cityKey].buy_price_max_date = curr.buy_price_max_date;
+          }
+        }
+      });
+
+      const priceData = Object.values(mergedPrices);
       
       if (!priceData || priceData.length === 0) {
         setError('Nenhum dado encontrado para este item.');
@@ -534,7 +576,7 @@ export default function App() {
       const itemsToScan = filteredItems.slice(0, 250);
       const itemIds = itemsToScan.map(i => i.id).join(',');
       const apiLocations = CITIES.map(c => c.replace(/\s/g, '')).join(',');
-      const url = `https://west.albion-online-data.com/api/v2/stats/prices/${itemIds}.json?locations=${apiLocations}&qualities=1`;
+      const url = `https://west.albion-online-data.com/api/v2/stats/prices/${itemIds}.json?locations=${apiLocations}&qualities=1,2,3`;
 
       const response = await fetch(url);
       if (!response.ok) throw new Error('Falha ao escanear oportunidades.');
