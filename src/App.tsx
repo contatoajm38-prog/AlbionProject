@@ -70,7 +70,6 @@ export default function App() {
   const [buyCities, setBuyCities] = useState<string[]>(['Lymhurst']);
   const [sellCities, setSellCities] = useState<string[]>(['Caerleon', 'Black Market']);
   const [showOnlyEquipment, setShowOnlyEquipment] = useState(false);
-  const [minProfit, setMinProfit] = useState(0);
 
   const isEquipment = (id: string) => {
     const equipmentKeywords = ['BAG', 'CAPE', 'MOUNT', 'HEAD', 'ARMOR', 'SHOES', 'MAIN', '2H', 'OFF', 'KNUCKLES'];
@@ -330,14 +329,6 @@ export default function App() {
     };
   };
 
-  const getItemName = (id: string) => {
-    return POPULAR_ITEMS.find(i => i.id === id)?.name || id;
-  };
-
-  const getItemIcon = (id: string) => {
-    return `https://render.albiononline.com/v1/item/${id}.png`;
-  };
-
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 font-sans selection:bg-emerald-500/30">
       {/* Header / Hero */}
@@ -348,8 +339,8 @@ export default function App() {
               <TrendingUp className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">Radar Albion</h1>
-              <p className="text-xs text-zinc-500 font-mono uppercase tracking-widest">Arbitrage & Price Tracker • <span className="text-emerald-500/80">POWERED BY AJM</span></p>
+              <h1 className="text-xl font-bold tracking-tight text-white">Albion Radar</h1>
+              <p className="text-xs text-zinc-500 font-mono uppercase tracking-widest">Arbitrage & Price Tracker</p>
             </div>
           </div>
 
@@ -487,15 +478,9 @@ export default function App() {
                       <button
                         key={item.id}
                         onClick={() => { setItemId(item.id); fetchPrices(item.id); }}
-                        className="flex items-center gap-2 px-3 py-2 bg-zinc-900/30 border border-white/5 rounded-md text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-left"
+                        className="px-4 py-2 bg-zinc-900/30 border border-white/5 rounded-md text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-left truncate"
                       >
-                        <img 
-                          src={getItemIcon(item.id)} 
-                          alt="" 
-                          className="w-6 h-6 object-contain"
-                          referrerPolicy="no-referrer"
-                        />
-                        <span className="truncate">{item.name}</span>
+                        {item.name}
                       </button>
                     ))}
                   </div>
@@ -607,15 +592,7 @@ export default function App() {
                   <div className="flex items-end justify-between border-b border-white/5 pb-4">
                     <div>
                       <span className="text-xs font-mono text-emerald-500 uppercase tracking-widest mb-1 block">Resultados para</span>
-                      <div className="flex items-center gap-4">
-                        <img 
-                          src={getItemIcon(searchedItem)} 
-                          alt={getItemName(searchedItem)} 
-                          className="w-16 h-16 object-contain bg-zinc-900 rounded-lg border border-white/5"
-                          referrerPolicy="no-referrer"
-                        />
-                        <h2 className="text-3xl font-bold text-white tracking-tight">{getItemName(searchedItem)}</h2>
-                      </div>
+                      <h2 className="text-3xl font-bold text-white tracking-tight">{searchedItem}</h2>
                     </div>
                     <div className="flex items-center gap-4">
                       <button
@@ -717,85 +694,68 @@ export default function App() {
                         {opportunities.length} Encontradas
                       </span>
                     )}
+                    <button
+                      onClick={scanOpportunities}
+                      disabled={scanning}
+                      className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/20"
+                    >
+                      {scanning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                      Escanear
+                    </button>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 pt-4 border-t border-white/5">
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Comprar em:</label>
-                          <div className="flex flex-wrap gap-2">
-                            {CITIES.map(city => (
-                              <button
-                                key={`buy-${city}`}
-                                onClick={() => {
-                                  setBuyCities(prev => 
-                                    prev.includes(city) 
-                                      ? prev.filter(c => c !== city) 
-                                      : [...prev, city]
-                                  );
-                                }}
-                                className={`px-2 py-1 rounded text-[10px] font-semibold border transition-all ${
-                                  buyCities.includes(city)
-                                    ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400'
-                                    : 'bg-zinc-950 border-white/10 text-zinc-500 hover:border-white/20'
-                                }`}
-                              >
-                                {city}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Vender em:</label>
-                          <div className="flex flex-wrap gap-2">
-                            {CITIES.map(city => (
-                              <button
-                                key={`sell-${city}`}
-                                onClick={() => {
-                                  setSellCities(prev => 
-                                    prev.includes(city) 
-                                      ? prev.filter(c => c !== city) 
-                                      : [...prev, city]
-                                  );
-                                }}
-                                className={`px-2 py-1 rounded text-[10px] font-semibold border transition-all ${
-                                  sellCities.includes(city)
-                                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                                    : 'bg-zinc-950 border-white/10 text-zinc-500 hover:border-white/20'
-                                }`}
-                              >
-                                {city}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 pt-4 border-t border-white/5">
-                        <div className="flex justify-between items-center">
-                          <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Lucro Mínimo por Item:</label>
-                          <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                            {minProfit.toLocaleString()} Prata
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="200000"
-                          step="1000"
-                          value={minProfit}
-                          onChange={(e) => setMinProfit(parseInt(e.target.value))}
-                          className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                        />
-                        <div className="flex justify-between text-[10px] text-zinc-600 font-mono">
-                          <span>0</span>
-                          <span>100k</span>
-                          <span>200k</span>
-                        </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Comprar em:</label>
+                      <div className="flex flex-wrap gap-2">
+                        {CITIES.map(city => (
+                          <button
+                            key={`buy-${city}`}
+                            onClick={() => {
+                              setBuyCities(prev => 
+                                prev.includes(city) 
+                                  ? prev.filter(c => c !== city) 
+                                  : [...prev, city]
+                              );
+                            }}
+                            className={`px-2 py-1 rounded text-[10px] font-semibold border transition-all ${
+                              buyCities.includes(city)
+                                ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400'
+                                : 'bg-zinc-950 border-white/10 text-zinc-500 hover:border-white/20'
+                            }`}
+                          >
+                            {city}
+                          </button>
+                        ))}
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Vender em:</label>
+                      <div className="flex flex-wrap gap-2">
+                        {CITIES.map(city => (
+                          <button
+                            key={`sell-${city}`}
+                            onClick={() => {
+                              setSellCities(prev => 
+                                prev.includes(city) 
+                                  ? prev.filter(c => c !== city) 
+                                  : [...prev, city]
+                              );
+                            }}
+                            className={`px-2 py-1 rounded text-[10px] font-semibold border transition-all ${
+                              sellCities.includes(city)
+                                ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                                : 'bg-zinc-950 border-white/10 text-zinc-500 hover:border-white/20'
+                            }`}
+                          >
+                            {city}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -820,29 +780,19 @@ export default function App() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {opportunities
-                  .filter(opp => opp.profit >= minProfit)
-                  .map((opp, idx) => (
-                    <motion.div
-                      key={opp.item_id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-5 hover:border-emerald-500/30 transition-all group"
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center gap-3">
-                          <img 
-                            src={getItemIcon(opp.item_id)} 
-                            alt={opp.item_name}
-                            className="w-12 h-12 object-contain bg-zinc-900 rounded-lg border border-white/5"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div>
-                            <h3 className="font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-1">{opp.item_name}</h3>
-                            <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">{opp.item_id}</span>
-                          </div>
-                        </div>
+                {opportunities.map((opp, idx) => (
+                  <motion.div
+                    key={opp.item_id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="bg-[#0f0f0f] border border-white/5 rounded-2xl p-5 hover:border-emerald-500/30 transition-all group"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-bold text-white group-hover:text-emerald-400 transition-colors">{opp.item_name}</h3>
+                        <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">{opp.item_id}</span>
+                      </div>
                       <div className="flex items-center gap-2">
                         {(() => {
                           const conf = getConfidence(opp.buy_updated, opp.sell_updated);
