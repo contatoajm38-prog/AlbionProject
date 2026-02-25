@@ -6,6 +6,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, TrendingUp, TrendingDown, Clock, MapPin, AlertCircle, Loader2, Info, ArrowRight, DollarSign, ShoppingCart, Zap, RefreshCw, Filter, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { SyncService } from './services/syncService';
 import { POPULAR_ITEMS } from './constants';
 
 interface PriceData {
@@ -123,7 +124,11 @@ const TRANSLATIONS = {
     totalInvestment: 'Total Investido',
     totalReturn: 'Total Retorno',
     silverInvested: 'Prata Investida',
-    silverReturn: 'Prata de Retorno'
+    silverReturn: 'Prata de Retorno',
+    premiumStatus: 'Status Premium',
+    premiumActive: 'Premium Ativo (Taxa 4%)',
+    premiumInactive: 'Sem Premium (Taxa 8%)',
+    taxNote: 'Lucro calculado após taxas de mercado.'
   },
   en: {
     subtitle: 'Arbitrage & Price Tracker',
@@ -194,7 +199,11 @@ const TRANSLATIONS = {
     totalInvestment: 'Total Invested',
     totalReturn: 'Total Return',
     silverInvested: 'Silver Invested',
-    silverReturn: 'Silver Return'
+    silverReturn: 'Silver Return',
+    premiumStatus: 'Premium Status',
+    premiumActive: 'Premium Active (4% Tax)',
+    premiumInactive: 'No Premium (8% Tax)',
+    taxNote: 'Profit calculated after market taxes.'
   }
 };
 
@@ -209,6 +218,33 @@ export default function App() {
   const [avgVolume, setAvgVolume] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchedItem, setSearchedItem] = useState('');
+  const [syncProgress, setSyncProgress] = useState<{current: number, total: number} | null>(null);
+  const [hasPremium, setHasPremium] = useState<boolean>(() => {
+    const saved = localStorage.getItem('albion_premium');
+    return saved === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('albion_premium', hasPremium.toString());
+  }, [hasPremium]);
+
+  const marketTax = hasPremium ? 0.04 : 0.08;
+  
+  // Synced data state
+  const [syncedItems, setSyncedItems] = useState<Record<string, any>>(SyncService.getSyncedItems());
+
+  // Automatic background sync
+  useEffect(() => {
+    const runSync = async () => {
+      await SyncService.autoSync((current, total) => {
+        setSyncProgress({ current, total });
+      });
+      // Refresh local state after sync
+      setSyncedItems(SyncService.getSyncedItems());
+      setSyncProgress(null);
+    };
+    runSync();
+  }, []);
   
   // Opportunities state
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -305,6 +341,9 @@ export default function App() {
   }, [activeTab, favorites]);
 
   const getItemName = (id: string) => {
+    // Check synced data first
+    if (syncedItems[id]) return syncedItems[id].name;
+
     const item = POPULAR_ITEMS.find(i => i.id === id);
     if (!item) return id;
     
@@ -617,20 +656,24 @@ export default function App() {
           const bestBuy = validSell.reduce((prev, curr) => prev.sell_price_min < curr.sell_price_min ? prev : curr);
           const bestSell = validBuy.reduce((prev, curr) => prev.buy_price_max > curr.buy_price_max ? prev : curr);
 
-          const profit = bestSell.buy_price_max - bestBuy.sell_price_min;
+          const buyPrice = bestBuy.sell_price_min;
+          const sellPrice = bestSell.buy_price_max;
+          const netSell = sellPrice * (1 - marketTax);
+          const profit = netSell - buyPrice;
+
           if (profit > 0) {
             const itemName = getItemName(id);
             foundOpportunities.push({
               item_id: id,
               item_name: itemName,
               buy_city: bestBuy.city,
-              buy_price: bestBuy.sell_price_min,
+              buy_price: buyPrice,
               buy_updated: bestBuy.sell_price_min_date,
               sell_city: bestSell.city,
-              sell_price: bestSell.buy_price_max,
+              sell_price: sellPrice,
               sell_updated: bestSell.buy_price_max_date,
               profit,
-              profit_percent: (profit / bestBuy.sell_price_min) * 100,
+              profit_percent: (profit / buyPrice) * 100,
               avg_volume: itemVolumes[id] || null
             });
           }
@@ -675,8 +718,8 @@ export default function App() {
       );
     }
 
-    const instantProfit = (minS && maxB) ? maxB.buy_price_max - minS.sell_price_min : null;
-    const transportProfit = (minS && maxS) ? maxS.sell_price_min - minS.sell_price_min : null;
+    const instantProfit = (minS && maxB) ? (maxB.buy_price_max * (1 - marketTax)) - minS.sell_price_min : null;
+    const transportProfit = (minS && maxS) ? (maxS.sell_price_min * (1 - marketTax)) - minS.sell_price_min : null;
 
     return { minSell: minS, maxBuy: maxB, maxSell: maxS, arbitrage: instantProfit, transport: transportProfit };
   }, [prices]);
@@ -730,6 +773,25 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 font-sans selection:bg-emerald-500/30">
+      {syncProgress && (
+        <div className="fixed bottom-4 right-4 z-50 bg-zinc-900/90 backdrop-blur-md border border-white/10 p-4 rounded-2xl shadow-2xl w-64">
+          <div className="flex items-center gap-3 mb-3">
+            <RefreshCw className="w-4 h-4 text-emerald-500 animate-spin" />
+            <span className="text-xs font-semibold text-white">Sincronizando Banco de Dados...</span>
+          </div>
+          <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-emerald-500 transition-all duration-300"
+              style={{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-2">
+            <span className="text-[10px] text-zinc-500">{syncProgress.current} / {syncProgress.total} itens</span>
+            <span className="text-[10px] text-zinc-500">{Math.round((syncProgress.current / syncProgress.total) * 100)}%</span>
+          </div>
+        </div>
+      )}
+
       {/* Header / Hero */}
       <header className="border-b border-white/5 bg-[#0f0f0f]/80 backdrop-blur-md sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -744,6 +806,19 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setHasPremium(!hasPremium)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-[10px] font-bold uppercase tracking-wider ${
+                hasPremium 
+                  ? 'bg-amber-500/10 border-amber-500/50 text-amber-500 shadow-lg shadow-amber-500/10' 
+                  : 'bg-zinc-900 border-white/5 text-zinc-500 hover:text-zinc-400'
+              }`}
+              title={hasPremium ? t.premiumActive : t.premiumInactive}
+            >
+              <Zap className={`w-3 h-3 ${hasPremium ? 'fill-amber-500' : ''}`} />
+              <span className="hidden sm:inline">{hasPremium ? 'Premium ON' : 'Premium OFF'}</span>
+            </button>
+
             <div className="flex items-center bg-zinc-900/50 p-1 rounded-xl border border-white/5">
             <button
               onClick={() => setActiveTab('search')}
@@ -937,6 +1012,10 @@ export default function App() {
                           </div>
                           <div className={`font-mono text-lg ${arbitrage > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
                             {formatPrice(arbitrage)} <span className="text-xs opacity-60">{t.silver}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[8px] text-zinc-600 mt-2">
+                            <Info className="w-2 h-2" />
+                            {t.taxNote}
                           </div>
                         </div>
                       ) : (
@@ -1206,6 +1285,10 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-medium mt-4">
+                    <Info className="w-3 h-3" />
+                    {t.taxNote}
+                  </div>
                 </div>
               </div>
 
@@ -1372,7 +1455,7 @@ export default function App() {
                             const qty = favoriteQuantities[id] || 0;
                             const itemPrices = favoritePrices[id] || [];
                             const bmPrice = itemPrices.find(p => p.city === 'Black Market');
-                            if (bmPrice && bmPrice.buy_price_max > 0) total += bmPrice.buy_price_max * qty;
+                            if (bmPrice && bmPrice.buy_price_max > 0) total += (bmPrice.buy_price_max * (1 - marketTax)) * qty;
                           });
                           return formatPrice(total);
                         })()}
@@ -1391,7 +1474,7 @@ export default function App() {
                             const bmPrice = itemPrices.find(p => p.city === 'Black Market');
                             
                             if (bestBuy) totalInvestment += bestBuy.sell_price_min * qty;
-                            if (bmPrice && bmPrice.buy_price_max > 0) totalReturn += bmPrice.buy_price_max * qty;
+                            if (bmPrice && bmPrice.buy_price_max > 0) totalReturn += (bmPrice.buy_price_max * (1 - marketTax)) * qty;
                           });
                           return formatPrice(totalReturn - totalInvestment);
                         })()}
@@ -1416,7 +1499,7 @@ export default function App() {
                       const bmPrice = itemPrices.find(p => p.city === 'Black Market');
                       const qty = favoriteQuantities[id] || 0;
                       const investment = bestBuy ? bestBuy.sell_price_min * qty : 0;
-                      const returns = (bmPrice && bmPrice.buy_price_max > 0) ? bmPrice.buy_price_max * qty : 0;
+                      const returns = (bmPrice && bmPrice.buy_price_max > 0) ? (bmPrice.buy_price_max * (1 - marketTax)) * qty : 0;
                       const profit = returns - investment;
                       const conf = (bestBuy && bmPrice) ? getConfidence(bestBuy.sell_price_min_date, bmPrice.buy_price_max_date) : null;
 
